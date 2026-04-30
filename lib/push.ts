@@ -7,15 +7,6 @@ import {
   type PushSubscriptionRow,
 } from './db/push-subscriptions'
 
-// Initialise VAPID credentials once at module load.
-// NEXT_PUBLIC_VAPID_PUBLIC_KEY  — safe to expose in the browser bundle
-// VAPID_PRIVATE_KEY             — server-only, never sent to the client
-webpush.setVapidDetails(
-  'mailto:admin@officely.app',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface PushPayload {
@@ -25,9 +16,25 @@ export interface PushPayload {
   icon?: string
 }
 
+// ── Lazy VAPID init ───────────────────────────────────────────────────────────
+// setVapidDetails is called on first use (not at module load) so the build
+// phase never crashes when env vars are absent.
+
+let vapidReady = false
+
+function ensureVapid() {
+  if (vapidReady) return
+  const pub  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const priv = process.env.VAPID_PRIVATE_KEY
+  if (!pub || !priv) throw new Error('VAPID keys are not configured in environment variables.')
+  webpush.setVapidDetails('mailto:admin@officely.app', pub, priv)
+  vapidReady = true
+}
+
 // ── Internal delivery ────────────────────────────────────────────────────────
 
 async function deliver(sub: PushSubscriptionRow, payload: PushPayload): Promise<void> {
+  ensureVapid()
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
