@@ -526,11 +526,13 @@ export function AdminDashboard({ initial }: Props) {
     }
   }
 
-  // Auto-refresh every 60s
+  // Fetch fresh data immediately on mount (clears any stale router-cache snapshot),
+  // then keep auto-refreshing every 60s.
   React.useEffect(() => {
+    refresh()
     const id = setInterval(refresh, 60_000)
     return () => clearInterval(id)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-5">
