@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --canvas: 220 27% 96%;       /* page background */
+    --surface: 0 0% 100%;        /* card background */
+    --surface-2: 220 25% 98%;    /* subtle inner surface */
+    --border: 220 22% 91%;
+    --ring: 226 100% 67%;
+
+    --ink: 222 30% 15%;
+    --ink-muted: 222 14% 45%;
+    --ink-soft: 222 12% 60%;
+
+    --brand: 226 100% 67%;       /* primary blue */
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 226 100% 95%;
+  }
+
+  .dark {
+    --canvas: 222 28% 8%;
+    --surface: 222 24% 12%;
+    --surface-2: 222 22% 15%;
+    --border: 222 18% 22%;
+    --ring: 226 100% 70%;
+
+    --ink: 220 25% 96%;
+    --ink-muted: 220 12% 70%;
+    --ink-soft: 220 10% 55%;
+
+    --brand: 226 100% 70%;
+    --brand-foreground: 222 28% 10%;
+    --brand-soft: 226 60% 22%;
+  }
+
+  /* ── Employee portal — violet brand ── */
+  .employee-theme {
+    --brand: 262 83% 58%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 262 100% 96%;
+    --ring: 262 83% 58%;
+  }
+  .dark .employee-theme,
+  .employee-theme.dark {
+    --brand: 262 80% 70%;
+    --brand-foreground: 262 28% 8%;
+    --brand-soft: 262 40% 20%;
+    --ring: 262 80% 70%;
+  }
+
+  html, body { height: 100%; }
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  /* ── Notification bell animations ── */
+  @keyframes bell-ring {
+    0%,  55%, 100% { transform: rotate(0deg) scale(1); }
+    5%             { transform: rotate(-18deg) scale(1.08); }
+    15%            { transform: rotate(16deg)  scale(1.08); }
+    25%            { transform: rotate(-12deg); }
+    35%            { transform: rotate(10deg); }
+    45%            { transform: rotate(-5deg); }
+    50%            { transform: rotate(4deg); }
+  }
+  .bell-ring {
+    animation: bell-ring 3.5s ease-in-out infinite;
+    transform-origin: 50% 4px; /* pivot at the top-centre (the hanger) */
+  }
+
+  @keyframes dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--brand) / 0.5); }
+    50%       { box-shadow: 0 0 0 5px hsl(var(--brand) / 0); }
+  }
+  .dot-pulse { animation: dot-pulse 2s ease-in-out infinite; }
+
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--canvas));
+  }
+}
