@@ -96,6 +96,8 @@ export interface Payslip {
   travel_allowance: number
   gross_salary: number
   deduction: number
+  emergency_leave_days: number
+  emergency_deduction: number
   net_salary: number
 
   override_net_salary: number | null

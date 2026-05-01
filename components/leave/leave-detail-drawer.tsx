@@ -30,6 +30,7 @@ export const LEAVE_TYPE_META: Record<LeaveType, { label: string; chip: string; d
   paternity:  { label: 'Paternity',  chip: 'bg-indigo/15 text-indigo',   dot: 'bg-indigo' },
   unpaid:     { label: 'Unpaid',     chip: 'bg-amber/15 text-amber',     dot: 'bg-amber' },
   other:      { label: 'Other',      chip: 'bg-ink-soft/15 text-ink-muted', dot: 'bg-ink-soft' },
+  emergency:  { label: 'Emergency',  chip: 'bg-red-100 text-red-600',    dot: 'bg-red-500' },
 }
 
 export const STATUS_META: Record<LeaveStatus, {

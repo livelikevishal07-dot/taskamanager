@@ -10,6 +10,7 @@ export type LeaveType =
   | 'paternity'
   | 'unpaid'
   | 'other'
+  | 'emergency'
 
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 

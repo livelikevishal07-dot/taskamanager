@@ -50,6 +50,8 @@ export async function listBookings(params: {
   employee_id?: string
   from?: string
   to?: string
+  event_from?: string
+  event_to?: string
   limit?: number
   withEmployee?: boolean
 }): Promise<BookingWithEmployee[]> {
@@ -66,6 +68,8 @@ export async function listBookings(params: {
   if (params.employee_id) q = q.eq('employee_id', params.employee_id)
   if (params.from)        q = q.gte('order_date', params.from)
   if (params.to)          q = q.lte('order_date', params.to)
+  if (params.event_from)  q = q.gte('event_date', params.event_from)
+  if (params.event_to)    q = q.lte('event_date', params.event_to)
   if (params.limit)       q = q.limit(params.limit)
 
   const { data, error } = await q

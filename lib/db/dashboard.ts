@@ -60,6 +60,19 @@ export interface DashboardSnapshot {
     todayRevenue:  number
   }
 
+  todayEvents: {
+    id:               string
+    customer_name:    string
+    customer_phone:   string
+    city:             string
+    event_date:       string
+    occasion:         string
+    website:          string
+    total_amount:     number
+    advance_paid:     number
+    employee_name:    string
+  }[]
+
   departmentBreakdown: {
     name: string
     color: string | null
@@ -156,6 +169,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     recentTasksQ,
     recentLeavesQ,
     recentBookingsQ,
+    todayEventsQ,
   ] = await Promise.all([
     // Employees with department for grouping
     supa.from('employees')
@@ -240,6 +254,12 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       .select('id, customer_name, total_amount, created_at, employee:employees(full_name)')
       .order('created_at', { ascending: false })
       .limit(5),
+
+    // Today's events (bookings with event_date = today)
+    supa.from('bookings')
+      .select('id, customer_name, customer_phone, city, event_date, occasion, website, total_amount, advance_paid, employee:employees(full_name)')
+      .eq('event_date', today)
+      .order('created_at', { ascending: true }),
   ])
 
   // ── Process employees ───────────────────────────────────────────────────────
@@ -433,6 +453,32 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     author: null,
   }))
 
+  // ── Today's events ─────────────────────────────────────────────────────────
+  const todayEventsRaw = (todayEventsQ.data ?? []) as unknown as Array<{
+    id: string
+    customer_name: string
+    customer_phone: string
+    city: string
+    event_date: string
+    occasion: string
+    website: string
+    total_amount: unknown
+    advance_paid: unknown
+    employee: { full_name: string } | null
+  }>
+  const todayEvents = todayEventsRaw.map(e => ({
+    id:            e.id,
+    customer_name: e.customer_name,
+    customer_phone: e.customer_phone,
+    city:          e.city,
+    event_date:    e.event_date,
+    occasion:      e.occasion,
+    website:       e.website,
+    total_amount:  num(e.total_amount),
+    advance_paid:  num(e.advance_paid),
+    employee_name: e.employee?.full_name ?? 'Unknown',
+  }))
+
   return {
     range: { from: monthStart, to: monthEnd },
     generatedAt: new Date().toISOString(),
@@ -446,6 +492,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     leaveStats,
     pendingLeaves,
     bookingStats,
+    todayEvents,
     departmentBreakdown,
     topPerformers,
     activity: activity.slice(0, 12),

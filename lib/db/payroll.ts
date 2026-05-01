@@ -134,7 +134,7 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Pays
   // NOTE: the table uses from_date / to_date (not start_date / end_date)
   const { data: leaveRows, error: leaveErr } = await db()
     .from('leave_requests')
-    .select('from_date, to_date, status')
+    .select('from_date, to_date, status, type')
     .eq('employee_id', employee_id)
     .eq('status', 'approved')
     .lte('from_date', lastDay)
@@ -142,15 +142,24 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Pays
 
   if (leaveErr) throw leaveErr
 
-  // Build a set of approved-leave date strings for quick lookup
-  const approvedLeaveDates = new Set<string>()
+  // Build separate sets for regular (paid) vs emergency (unpaid/deductible) leave
+  const approvedLeaveDates   = new Set<string>() // paid leave dates
+  const emergencyLeaveDates  = new Set<string>() // emergency (deductible) leave dates
+
   for (const lr of leaveRows ?? []) {
     const start = new Date(lr.from_date)
     const end   = new Date(lr.to_date)
+    const isEmergency = lr.type === 'emergency'
+
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       // Only non-Sundays count
       if (d.getDay() !== 0) {
-        approvedLeaveDates.add(d.toISOString().slice(0, 10))
+        const dateStr = d.toISOString().slice(0, 10)
+        if (isEmergency) {
+          emergencyLeaveDates.add(dateStr)
+        } else {
+          approvedLeaveDates.add(dateStr)
+        }
       }
     }
   }
@@ -188,35 +197,41 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Pays
     }
   }
 
+  // Count approved emergency leave days that fall within this month
+  const emergencyLeaveDaysInMonth = emergencyLeaveDates.size
+
   const totalWorkingDays = workingDaysInMonth(year, month)
 
   // Salary computation
-  const perDaySalary  = monthlySalary > 0 ? r2(monthlySalary / totalWorkingDays) : 0
-  const basePay       = r2(monthlySalary * 0.60)
-  const da            = r2(monthlySalary * 0.25)
-  const travelAllow   = r2(monthlySalary * 0.15)
-  const grossSalary   = monthlySalary
-  const deduction     = r2(absentDays * perDaySalary)
-  const netSalary     = r2(grossSalary - deduction)
+  const perDaySalary       = monthlySalary > 0 ? r2(monthlySalary / totalWorkingDays) : 0
+  const basePay            = r2(monthlySalary * 0.60)
+  const da                 = r2(monthlySalary * 0.25)
+  const travelAllow        = r2(monthlySalary * 0.15)
+  const grossSalary        = monthlySalary
+  const deduction          = r2(absentDays * perDaySalary)
+  const emergencyDeduction = r2(emergencyLeaveDaysInMonth * perDaySalary)
+  const netSalary          = r2(grossSalary - deduction - emergencyDeduction)
 
   const upsertData = {
     employee_id,
     month,
     year,
-    monthly_salary:     monthlySalary,
-    company_name:       companyName,
-    total_working_days: totalWorkingDays,
-    present_days:       presentDays,
-    paid_leave_days:    paidLeaveDays,
-    absent_days:        absentDays,
-    per_day_salary:     perDaySalary,
-    base_pay:           basePay,
+    monthly_salary:       monthlySalary,
+    company_name:         companyName,
+    total_working_days:   totalWorkingDays,
+    present_days:         presentDays,
+    paid_leave_days:      paidLeaveDays,
+    absent_days:          absentDays,
+    per_day_salary:       perDaySalary,
+    base_pay:             basePay,
     da,
-    travel_allowance:   travelAllow,
-    gross_salary:       grossSalary,
+    travel_allowance:     travelAllow,
+    gross_salary:         grossSalary,
     deduction,
-    net_salary:         netSalary,
-    status:             'draft' as const,
+    emergency_leave_days: emergencyLeaveDaysInMonth,
+    emergency_deduction:  emergencyDeduction,
+    net_salary:           netSalary,
+    status:               'draft' as const,
   }
 
   const { data, error } = await db()
@@ -264,8 +279,9 @@ export async function updatePayslip(
     updates.present_days    = presentDays
     updates.absent_days     = absentDays
     updates.paid_leave_days = paidLeave
-    const deduction  = r2(absentDays * current.per_day_salary)
-    const netSalary  = r2(current.gross_salary - deduction)
+    const deduction          = r2(absentDays * current.per_day_salary)
+    const emergencyDeduction = r2((current.emergency_leave_days ?? 0) * current.per_day_salary)
+    const netSalary          = r2(current.gross_salary - deduction - emergencyDeduction)
     updates.deduction  = deduction
     updates.net_salary = netSalary
   }

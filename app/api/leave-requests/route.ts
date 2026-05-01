@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const createSchema = z.object({
   employee_id: z.string().uuid(),
-  type: z.enum(['casual', 'sick', 'annual', 'maternity', 'paternity', 'unpaid', 'other']),
+  type: z.enum(['casual', 'sick', 'annual', 'maternity', 'paternity', 'unpaid', 'other', 'emergency']),
   from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   days: z.number().int().min(1),

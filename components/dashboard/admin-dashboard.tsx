@@ -11,6 +11,7 @@ import {
   TrendingUp, RefreshCw, ArrowRight, AlertCircle, Clock,
   CheckCircle2, CalendarDays, Megaphone, Award,
   ChevronRight, BookOpen, ListChecks,
+  CalendarCheck, MapPin, PartyPopper, Phone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardSnapshot } from '@/lib/db/dashboard'
@@ -507,6 +508,81 @@ function BookingMiniCard({ stats }: { stats: DashboardSnapshot['bookingStats'] }
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 
+function TodayEventsCard({ events }: { events: DashboardSnapshot['todayEvents'] }) {
+  if (events.length === 0) {
+    return (
+      <div className="py-6 text-center">
+        <CalendarCheck className="mx-auto mb-2 size-8 text-ink-soft/40" />
+        <p className="text-sm text-ink-soft">No events scheduled for today</p>
+      </div>
+    )
+  }
+
+  const totalRevenue = events.reduce((s, e) => s + e.total_amount, 0)
+  const totalAdvance = events.reduce((s, e) => s + e.advance_paid, 0)
+
+  return (
+    <div className="space-y-3">
+      {/* Summary strip */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
+          <p className="text-lg font-bold text-brand tabular-nums">{events.length}</p>
+          <p className="text-[10px] text-ink-soft">Events</p>
+        </div>
+        <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
+          <p className="text-lg font-bold tabular-nums">{'₹'}{fmt(totalRevenue)}</p>
+          <p className="text-[10px] text-ink-soft">Revenue</p>
+        </div>
+        <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
+          <p className="text-lg font-bold text-emerald tabular-nums">{'₹'}{fmt(totalAdvance)}</p>
+          <p className="text-[10px] text-ink-soft">Advance</p>
+        </div>
+      </div>
+
+      {/* Event list */}
+      <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+        {events.map((ev, i) => (
+          <div
+            key={ev.id}
+            className="rounded-xl border border-border bg-surface-2/30 px-3 py-2.5 transition-colors hover:border-brand/30"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-[10px] font-bold text-white">
+                    {i + 1}
+                  </span>
+                  <p className="truncate text-sm font-semibold">{ev.customer_name}</p>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-soft">
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="size-2.5" />{ev.city}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <PartyPopper className="size-2.5" />{ev.occasion}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-[11px]">
+                  <span className="font-medium text-ink">by {ev.employee_name}</span>
+                  <span className="text-ink-soft">{'·'}</span>
+                  <span className="font-semibold text-brand tabular-nums">{'₹'}{fmt(ev.total_amount)}</span>
+                </div>
+              </div>
+              <a
+                href={`tel:${ev.customer_phone}`}
+                className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg border border-border bg-surface text-ink-soft hover:border-brand/30 hover:text-brand transition-colors"
+                title={ev.customer_phone}
+              >
+                <Phone className="size-3" />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function AdminDashboard({ initial }: Props) {
   const [data,    setData]    = React.useState<DashboardSnapshot>(initial)
   const [loading, setLoading] = React.useState(false)
@@ -610,6 +686,29 @@ export function AdminDashboard({ initial }: Props) {
           <AttendanceDonut data={data.attendanceToday} />
         </Card>
       </div>
+
+      {/* ── Today's Events ── */}
+      <Card
+        title={
+          <span className="flex items-center gap-2">
+            <CalendarCheck className="size-4 text-brand" />
+            Today&apos;s Events
+            {(data.todayEvents?.length ?? 0) > 0 && (
+              <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-bold text-brand tabular-nums">
+                {data.todayEvents.length}
+              </span>
+            )}
+          </span>
+        }
+        subtitle="Bookings with events scheduled for today"
+        action={
+          <Link href="/cms/bookings/list" className="text-xs text-brand hover:underline flex items-center gap-1">
+            All Bookings <ArrowRight className="size-3" />
+          </Link>
+        }
+      >
+        <TodayEventsCard events={data.todayEvents ?? []} />
+      </Card>
 
       {/* ── Triple row: Departments / Bookings / Leave ── */}
       <div className="grid gap-5 lg:grid-cols-3">

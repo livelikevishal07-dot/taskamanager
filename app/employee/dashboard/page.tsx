@@ -10,13 +10,17 @@ import { LeaveOverview }     from '@/components/employee-dashboard/leave-overvie
 import { RecentAttendance }  from '@/components/employee-dashboard/recent-attendance'
 import { AnnouncementsFeed } from '@/components/employee-dashboard/announcements-feed'
 import { LeaderboardWidget } from '@/components/leaderboard/leaderboard-widget'
+import { TodayEvents }      from '@/components/employee-dashboard/today-events'
 import { TaskDetailDrawer, type TaskDetail } from '@/components/employee-dashboard/task-detail-drawer'
 import { TaskFormDrawer }    from '@/components/employee-dashboard/task-form-drawer'
 import { DailyTasksSection } from '@/components/employee-dashboard/daily-tasks'
 import { useEmployee }       from '@/app/employee/context'
 
+const BOOKING_DEPARTMENTS = ['Sales', 'Operations']
+
 export default function EmployeeDashboard() {
   const employee = useEmployee()
+  const showBookings = Boolean(employee.department && BOOKING_DEPARTMENTS.includes(employee.department))
   const [detailTask,  setDetailTask]  = React.useState<TaskDetail | null>(null)
   const [detailOpen,  setDetailOpen]  = React.useState(false)
   const [formTask,    setFormTask]    = React.useState<TaskDetail | null>(null)
@@ -38,6 +42,8 @@ export default function EmployeeDashboard() {
         <WelcomeCard />
         <DailyTasksSection employeeId={employee.id} compact />
         <QuickStats />
+
+        {showBookings && <TodayEvents />}
 
         <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="space-y-5">

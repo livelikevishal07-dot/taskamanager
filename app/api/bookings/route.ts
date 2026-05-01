@@ -28,9 +28,11 @@ export async function GET(req: NextRequest) {
     const employee_id = sp.get('employee_id') ?? undefined
     const from        = sp.get('from') ?? undefined
     const to          = sp.get('to') ?? undefined
+    const event_from  = sp.get('event_from') ?? undefined
+    const event_to    = sp.get('event_to') ?? undefined
     const limit       = sp.get('limit') ? Number(sp.get('limit')) : undefined
     const withEmployee = sp.get('with_employee') === '1'
-    return ok(await listBookings({ employee_id, from, to, limit, withEmployee }))
+    return ok(await listBookings({ employee_id, from, to, event_from, event_to, limit, withEmployee }))
   } catch (err) {
     return fromError(err)
   }

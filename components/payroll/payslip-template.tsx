@@ -64,6 +64,14 @@ export function PayslipTemplate({ payslip }: Props) {
     { label: 'Absent Deduction',   deduction: payslip.deduction },
   ]
 
+  // Emergency leave deduction (salary-deductible unpaid leave)
+  if ((payslip.emergency_leave_days ?? 0) > 0) {
+    rows.push({
+      label: `Emergency Leave (${payslip.emergency_leave_days} day${payslip.emergency_leave_days !== 1 ? 's' : ''})`,
+      deduction: payslip.emergency_deduction ?? 0,
+    })
+  }
+
   if (payslip.override_net_salary != null) {
     const diff = payslip.override_net_salary - payslip.net_salary
     if (diff > 0)  rows.push({ label: 'Admin Adjustment', earning: diff })
@@ -122,15 +130,18 @@ export function PayslipTemplate({ payslip }: Props) {
       </div>
 
       {/* Attendance summary */}
-      <div className="mb-4 grid grid-cols-4 gap-2 text-center">
+      <div className={`mb-4 grid gap-2 text-center ${(payslip.emergency_leave_days ?? 0) > 0 ? 'grid-cols-5' : 'grid-cols-4'}`}>
         {[
-          { label: 'Working Days', value: payslip.total_working_days },
-          { label: 'Days Present', value: payslip.present_days },
-          { label: 'Paid Leave',   value: payslip.paid_leave_days },
-          { label: 'Days Absent',  value: payslip.absent_days },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-gray-200 py-2">
-            <p className="text-lg font-bold text-violet-700">{value}</p>
+          { label: 'Working Days',    value: payslip.total_working_days, highlight: false },
+          { label: 'Days Present',    value: payslip.present_days,       highlight: false },
+          { label: 'Paid Leave',      value: payslip.paid_leave_days,    highlight: false },
+          { label: 'Days Absent',     value: payslip.absent_days,        highlight: false },
+          ...((payslip.emergency_leave_days ?? 0) > 0
+            ? [{ label: 'Emergency Leave', value: payslip.emergency_leave_days, highlight: true }]
+            : []),
+        ].map(({ label, value, highlight }) => (
+          <div key={label} className={`rounded-lg border py-2 ${highlight ? 'border-red-200 bg-red-50' : 'border-gray-200'}`}>
+            <p className={`text-lg font-bold ${highlight ? 'text-red-600' : 'text-violet-700'}`}>{value}</p>
             <p className="text-[11px] text-gray-500">{label}</p>
           </div>
         ))}

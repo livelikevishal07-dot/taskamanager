@@ -234,6 +234,19 @@ export function LeaveFormDrawer({ open, onClose, request, employees, onSaved, on
             : 'Select valid date range'}
         </div>
 
+        {/* Emergency leave warning */}
+        {draft.type === 'emergency' && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/40 dark:bg-red-950/20">
+            <span className="mt-0.5 text-base">⚠️</span>
+            <div>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Emergency Leave — Salary Deductible</p>
+              <p className="mt-0.5 text-xs text-red-600/80 dark:text-red-400/70">
+                Emergency leave is unpaid. The salary for these days will be deducted from the employee's payslip when it is generated.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Reason */}
         <Field label="Reason (optional)">
           <textarea
