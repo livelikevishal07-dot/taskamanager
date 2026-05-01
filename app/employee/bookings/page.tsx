@@ -13,25 +13,30 @@ import { EmployeeTopbar } from '@/components/employee-dashboard/topbar'
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 // Quick-pick city pills — one tap fills the city field.
-// These are the 9 most common cities in the dataset.
 const QUICK_CITIES = [
   'Bangalore', 'Hyderabad', 'Delhi', 'Mumbai',
   'Pune', 'Kolkata', 'Chennai', 'Noida', 'Gurgaon',
 ]
 
+// Full city list — 'Others' at the bottom triggers a custom text input.
 const CITIES = [
   'Bangalore','Delhi','Mumbai','Hyderabad','Pune','Kolkata','Chennai',
   'Gurgaon','Noida','Ghaziabad','Ahmedabad','Jaipur','Nagpur','Navi Mumbai',
-  'Lucknow','Bhubaneshwar','Chandigarh','Vadodara','Option 19','Others',
+  'Lucknow','Bhubaneshwar','Chandigarh','Vadodara','Surat','Kochi',
+  'Indore','Bhopal','Patna','Agra','Visakhapatnam','Thane','Nashik','Meerut',
 ]
+
+// Sentinel value — when selected, shows a custom city text input
+const OTHER_CITY = '__other__'
 
 const OCCASIONS = [
   'Birthday','Romantic','Welcome Baby','Baby Shower','First Night',
   'Kids Birthday','Wedding Others','Corporate','Flowers','Cakes','Hampers','Others',
 ]
 
-const WEBSITES  = ['BalloonDekor','7eventzz','Giftlaya'] as const
-const PLATFORMS = ['WhatsApp','Website','Others'] as const
+// Websites & platforms are loaded dynamically from /api/booking-options
+const FALLBACK_WEBSITES:  string[] = ['BalloonDekor','7eventzz','Giftlaya']
+const FALLBACK_PLATFORMS: string[] = ['WhatsApp','Website','Others']
 
 const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -331,6 +336,28 @@ const ALLOWED_DEPARTMENTS = ['Sales', 'Operations']
 export default function BookingsPage() {
   const employee = useEmployee()
 
+  // ── Dynamic booking options (websites + platforms) ─────────────────────────
+  const [websites,  setWebsites]  = React.useState<string[]>(FALLBACK_WEBSITES)
+  const [platforms, setPlatforms] = React.useState<string[]>(FALLBACK_PLATFORMS)
+
+  React.useEffect(() => {
+    fetch('/api/booking-options')
+      .then((r) => r.json())
+      .then((d: { type: string; label: string }[]) => {
+        if (!Array.isArray(d)) return
+        const ws = d.filter((o) => o.type === 'website').map((o) => o.label)
+        const ps = d.filter((o) => o.type === 'platform').map((o) => o.label)
+        if (ws.length) setWebsites(ws)
+        if (ps.length) setPlatforms(ps)
+      })
+      .catch(() => {})
+  }, [])
+
+  // ── Custom city state ───────────────────────────────────────────────────────
+  // When user picks "Other City" from the dropdown, showCustomCity becomes true
+  // and form.city is updated as they type in the text input.
+  const [showCustomCity, setShowCustomCity] = React.useState(false)
+
   // ── Cal state ──────────────────────────────────────────────────────────────
   const now = new Date()
   const [calYear,  setCalYear]  = React.useState(now.getFullYear())
@@ -437,10 +464,22 @@ export default function BookingsPage() {
     set('customer_phone', digits)
   }
 
-  // City quick-pick — sets city + clears city error
+  // City quick-pick — sets city + clears city error + hides custom input
   function pickCity(c: string) {
+    setShowCustomCity(false)
     setForm((f) => ({ ...f, city: c }))
     setErrors((e) => ({ ...e, city: undefined }))
+  }
+
+  // City dropdown change — handles 'Other City' sentinel
+  function handleCityDropdown(val: string) {
+    if (val === OTHER_CITY) {
+      setShowCustomCity(true)
+      setForm((f) => ({ ...f, city: '' }))
+    } else {
+      setShowCustomCity(false)
+      set('city', val)
+    }
   }
 
   function validate(): boolean {
@@ -523,14 +562,15 @@ export default function BookingsPage() {
       // Flash success, reset customer fields, keep sticky fields
       setSuccess(true)
       setTimeout(() => setSuccess(false), 2500)
+      // Keep city (and custom city mode), website, occasion, platform — saves time for repeat entries
       setForm((f) => ({
         ...EMPTY_FORM(f.order_date),
-        // Keep city, website, occasion, platform — saves time for repeat entries
         city:             f.city,
         website:          f.website,
         occasion:         f.occasion,
         booking_platform: f.booking_platform,
       }))
+      // showCustomCity is intentionally kept as-is so repeat entries stay in the same city mode
       setTimeout(() => nameRef.current?.focus(), 50)
     } catch (err) {
       setApiErr(err instanceof Error ? err.message : 'Failed to save')
@@ -691,6 +731,7 @@ export default function BookingsPage() {
 
               {/* ── Row 2: City — full width so quick-pick pills don't fight a neighbour ── */}
               <FieldInput label="City of Booking" required>
+                {/* Quick-pick pills */}
                 <div className="mb-2 flex flex-wrap gap-1">
                   {QUICK_CITIES.map((c) => (
                     <button
@@ -699,7 +740,7 @@ export default function BookingsPage() {
                       onClick={() => pickCity(c)}
                       className={cn(
                         'flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold transition-all',
-                        form.city === c
+                        form.city === c && !showCustomCity
                           ? 'border-brand bg-brand text-brand-foreground'
                           : 'border-border bg-surface-2/60 text-ink-soft hover:border-brand/40 hover:text-ink',
                       )}
@@ -709,14 +750,37 @@ export default function BookingsPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* City dropdown — 'Other City' triggers custom text input */}
                 <select
-                  value={form.city}
-                  onChange={(e) => set('city', e.target.value)}
-                  className={cn(selectCls, errors.city && 'border-coral')}
+                  value={showCustomCity ? OTHER_CITY : form.city}
+                  onChange={(e) => handleCityDropdown(e.target.value)}
+                  className={cn(selectCls, errors.city && !showCustomCity && 'border-coral')}
                 >
-                  <option value="">Other city…</option>
-                  {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value="">Select city…</option>
+                  <optgroup label="Common Cities">
+                    {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </optgroup>
+                  <optgroup label="──────────────">
+                    <option value={OTHER_CITY}>✦ Other City (type below)</option>
+                  </optgroup>
                 </select>
+
+                {/* Custom city input — shown when 'Other City' is selected */}
+                {showCustomCity && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Type city name…"
+                      value={form.city}
+                      onChange={(e) => set('city', e.target.value)}
+                      className={cn(inputCls, errors.city && 'border-coral')}
+                    />
+                    <p className="mt-1 text-[10px] text-brand">Enter the exact city name as it should appear in records.</p>
+                  </div>
+                )}
+
                 {errors.city && <p className="mt-1 text-[10px] text-coral">{errors.city}</p>}
               </FieldInput>
 
@@ -817,7 +881,7 @@ export default function BookingsPage() {
                 <div>
                   <PillGroup
                     label="Booking from Website"
-                    options={WEBSITES}
+                    options={websites}
                     value={form.website}
                     onChange={(v) => set('website', v)}
                     required
@@ -831,7 +895,7 @@ export default function BookingsPage() {
               <div>
                 <PillGroup
                   label="Booking Platform"
-                  options={PLATFORMS}
+                  options={platforms}
                   value={form.booking_platform}
                   onChange={(v) => set('booking_platform', v)}
                   required

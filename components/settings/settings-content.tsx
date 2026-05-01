@@ -4,6 +4,7 @@ import { useSettingsTab } from './settings-nav'
 import { CompaniesPanel } from './companies-panel'
 import { DepartmentsPanel } from './departments-panel'
 import { RolesPanel } from './roles-panel'
+import { BookingOptionsPanel } from './booking-options-panel'
 import {
   GeneralPanel,
   NotificationsPanel,
@@ -20,6 +21,8 @@ export function SettingsContent() {
       return <DepartmentsPanel />
     case 'roles':
       return <RolesPanel />
+    case 'booking-options':
+      return <BookingOptionsPanel />
     case 'general':
       return <GeneralPanel />
     case 'notifications':

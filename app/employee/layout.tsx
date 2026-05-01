@@ -5,6 +5,8 @@ import { getSessionEmployeeId }           from '@/lib/auth'
 import { EmployeeProvider, type CurrentEmployee } from './context'
 import { MobileMenuProvider }             from './mobile-menu-context'
 import { EmployeeShell }                  from '@/components/employee-dashboard/shell'
+import { PwaRegister }                    from '@/components/pwa-register'
+import { PwaInstallBanner }               from '@/components/pwa-install-banner'
 
 export default async function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const sessionId = getSessionEmployeeId()
@@ -34,9 +36,13 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
   return (
     <EmployeeProvider value={me}>
       <MobileMenuProvider>
+        {/* Register service worker + show install banner (client-only, render null on server) */}
+        <PwaRegister />
         {/* EmployeeShell is a client component — server-rendered children
             passed as a prop stay server components. */}
         <EmployeeShell>{children}</EmployeeShell>
+        {/* Install banner sits outside the shell so it overlays everything */}
+        <PwaInstallBanner />
       </MobileMenuProvider>
     </EmployeeProvider>
   )

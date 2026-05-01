@@ -38,19 +38,28 @@ interface Props {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// Standard city list — 'Others' in the filter matches any city NOT in this set.
 const CITIES = [
   'Bangalore','Delhi','Mumbai','Hyderabad','Pune','Kolkata','Chennai',
   'Gurgaon','Noida','Ghaziabad','Ahmedabad','Jaipur','Nagpur','Navi Mumbai',
-  'Lucknow','Bhubaneshwar','Chandigarh','Vadodara','Option 19','Others',
+  'Lucknow','Bhubaneshwar','Chandigarh','Vadodara','Surat','Kochi',
+  'Indore','Bhopal','Patna','Agra','Visakhapatnam','Thane','Nashik','Meerut',
 ]
+
+// Set for O(1) lookup in the "Other Cities" filter
+const CITY_SET = new Set(CITIES)
+
+// Sentinel value used in the city filter select
+const OTHER_CITY = '__other__'
 
 const OCCASIONS = [
   'Birthday','Romantic','Welcome Baby','Baby Shower','First Night',
   'Kids Birthday','Wedding Others','Corporate','Flowers','Cakes','Hampers','Others',
 ]
 
-const WEBSITES  = ['BalloonDekor', '7eventzz', 'Giftlaya']
-const PLATFORMS = ['WhatsApp', 'Website', 'Others']
+// Fallbacks — replaced by dynamic values from /api/booking-options
+const FALLBACK_WEBSITES:  string[] = ['BalloonDekor', '7eventzz', 'Giftlaya']
+const FALLBACK_PLATFORMS: string[] = ['WhatsApp', 'Website', 'Others']
 
 const PAGE_SIZES = [25, 50, 100, 200]
 
@@ -115,6 +124,23 @@ type SortDir = 'asc' | 'desc'
 // ── Main List Component ───────────────────────────────────────────────────────
 
 export function AdminBookingsList({ employees }: Props) {
+  // ── Dynamic booking options ─────────────────────────────────────────────────
+  const [websites,  setWebsites]  = React.useState<string[]>(FALLBACK_WEBSITES)
+  const [platforms, setPlatforms] = React.useState<string[]>(FALLBACK_PLATFORMS)
+
+  React.useEffect(() => {
+    fetch('/api/booking-options')
+      .then((r) => r.json())
+      .then((d: { type: string; label: string }[]) => {
+        if (!Array.isArray(d)) return
+        const ws = d.filter((o) => o.type === 'website').map((o) => o.label)
+        const ps = d.filter((o) => o.type === 'platform').map((o) => o.label)
+        if (ws.length) setWebsites(ws)
+        if (ps.length) setPlatforms(ps)
+      })
+      .catch(() => {})
+  }, [])
+
   // ── Filter state ────────────────────────────────────────────────────────────
   const [from,      setFrom]      = React.useState(startOfMonthISO())
   const [to,        setTo]        = React.useState(endOfMonthISO())
@@ -193,18 +219,22 @@ export function AdminBookingsList({ employees }: Props) {
   const max = maxAmount ? Number(maxAmount) : Infinity
 
   const filtered = bookings
-    .filter(b =>
-      (!city     || b.city             === city)     &&
-      (!website  || b.website          === website)  &&
-      (!platform || b.booking_platform === platform) &&
-      (!occasion || b.occasion         === occasion) &&
-      b.total_amount >= min && b.total_amount <= max &&
-      (!q ||
+    .filter(b => {
+      // City filter: '__other__' = any city not in the standard list
+      if (city === OTHER_CITY && CITY_SET.has(b.city)) return false
+      if (city && city !== OTHER_CITY && b.city !== city) return false
+      if (website  && b.website          !== website)  return false
+      if (platform && b.booking_platform !== platform) return false
+      if (occasion && b.occasion         !== occasion) return false
+      if (b.total_amount < min || b.total_amount > max) return false
+      if (q && !(
         b.customer_name.toLowerCase().includes(q) ||
         b.customer_phone.includes(q) ||
         b.city.toLowerCase().includes(q) ||
-        (b.employee?.full_name ?? '').toLowerCase().includes(q))
-    )
+        (b.employee?.full_name ?? '').toLowerCase().includes(q)
+      )) return false
+      return true
+    })
     .sort((a, b) => {
       let av: any, bv: any
       if (sortKey === 'employee') {
@@ -339,12 +369,11 @@ export function AdminBookingsList({ employees }: Props) {
         <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           <FilterSelect label="Employee" value={empFilter} onChange={setEmpFilter}
             options={[{ v: '', l: 'All' }, ...employees.map(e => ({ v: e.id, l: e.full_name }))]} />
-          <FilterSelect label="City" value={city} onChange={setCity}
-            options={[{ v: '', l: 'All Cities' }, ...CITIES.map(c => ({ v: c, l: c }))]} />
+          <CityFilterSelect value={city} onChange={setCity} />
           <FilterSelect label="Website" value={website} onChange={setWebsite}
-            options={[{ v: '', l: 'All Websites' }, ...WEBSITES.map(w => ({ v: w, l: w }))]} />
+            options={[{ v: '', l: 'All Websites' }, ...websites.map(w => ({ v: w, l: w }))]} />
           <FilterSelect label="Platform" value={platform} onChange={setPlatform}
-            options={[{ v: '', l: 'All Platforms' }, ...PLATFORMS.map(p => ({ v: p, l: p }))]} />
+            options={[{ v: '', l: 'All Platforms' }, ...platforms.map(p => ({ v: p, l: p }))]} />
           <FilterSelect label="Occasion" value={occasion} onChange={setOccasion}
             options={[{ v: '', l: 'All Occasions' }, ...OCCASIONS.map(o => ({ v: o, l: o }))]} />
 
@@ -545,6 +574,8 @@ export function AdminBookingsList({ employees }: Props) {
       {editing && (
         <EditBookingModal
           booking={editing}
+          websites={websites}
+          platforms={platforms}
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
             setBookings(prev => prev.map(x => x.id === updated.id
@@ -561,12 +592,17 @@ export function AdminBookingsList({ employees }: Props) {
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 
 function EditBookingModal({
-  booking, onClose, onSaved,
+  booking, onClose, onSaved, websites, platforms,
 }: {
-  booking: Booking
-  onClose: () => void
-  onSaved: (updated: Booking) => void
+  booking:   Booking
+  onClose:   () => void
+  onSaved:   (updated: Booking) => void
+  websites:  string[]
+  platforms: string[]
 }) {
+  // If the stored city is not in the standard list, default to "Other City" mode
+  const isOtherCity = !CITY_SET.has(booking.city)
+
   const [form, setForm] = React.useState({
     order_date:       booking.order_date,
     customer_name:    booking.customer_name,
@@ -579,6 +615,7 @@ function EditBookingModal({
     occasion:         booking.occasion,
     booking_platform: booking.booking_platform,
   })
+  const [showCustomCity, setShowCustomCity] = React.useState(isOtherCity)
   const [saving, setSaving] = React.useState(false)
   const [err,    setErr]    = React.useState<string | null>(null)
 
@@ -676,10 +713,39 @@ function EditBookingModal({
                 onChange={e => set('customer_phone', e.target.value)} className={inputCls} required />
             </Field>
             <Field label="City">
-              <select value={form.city} onChange={e => set('city', e.target.value)}
-                className={inputCls + ' cursor-pointer'} required>
-                {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              <select
+                value={showCustomCity ? OTHER_CITY : form.city}
+                onChange={e => {
+                  if (e.target.value === OTHER_CITY) {
+                    setShowCustomCity(true)
+                    set('city', '')
+                  } else {
+                    setShowCustomCity(false)
+                    set('city', e.target.value)
+                  }
+                }}
+                className={inputCls + ' cursor-pointer'}
+                required={!showCustomCity}
+              >
+                <option value="">Select city…</option>
+                <optgroup label="Common Cities">
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+                <optgroup label="──────────────">
+                  <option value={OTHER_CITY}>✦ Other City (type below)</option>
+                </optgroup>
               </select>
+              {showCustomCity && (
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type city name…"
+                  value={form.city}
+                  onChange={e => set('city', e.target.value)}
+                  className={inputCls + ' mt-2'}
+                  required
+                />
+              )}
             </Field>
           </div>
 
@@ -702,7 +768,8 @@ function EditBookingModal({
             <Field label="Website">
               <select value={form.website} onChange={e => set('website', e.target.value)}
                 className={inputCls + ' cursor-pointer'} required>
-                {WEBSITES.map(w => <option key={w} value={w}>{w}</option>)}
+                <option value="">Select website…</option>
+                {websites.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             </Field>
             <Field label="Occasion">
@@ -715,7 +782,7 @@ function EditBookingModal({
 
           <Field label="Booking Platform">
             <div className="flex flex-wrap gap-1.5">
-              {PLATFORMS.map(p => (
+              {platforms.map(p => (
                 <button key={p} type="button" onClick={() => set('booking_platform', p)}
                   className={cn(
                     'rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all',
@@ -760,6 +827,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </label>
       {children}
+    </div>
+  )
+}
+
+// ── City Filter Select — uses optgroup to highlight "Other Cities" ─────────────
+
+function CityFilterSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+        City
+      </label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="h-9 w-full rounded-lg border border-border bg-surface-2 px-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer"
+      >
+        <option value="">All Cities</option>
+        <optgroup label="Common Cities">
+          {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </optgroup>
+        <optgroup label="──────────────">
+          <option value={OTHER_CITY}>✦ Other Cities</option>
+        </optgroup>
+      </select>
     </div>
   )
 }

@@ -8,18 +8,20 @@ import {
   Bell,
   ShieldCheck,
   KeyRound,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
 export const SETTINGS_TABS = [
-  { key: 'companies', label: 'Companies', icon: Building2, hint: 'Manage businesses' },
-  { key: 'departments', label: 'Departments', icon: Building, hint: 'Group employees by team' },
-  { key: 'roles', label: 'Roles', icon: ShieldCheck, hint: 'Permissions & access' },
-  { key: 'general', label: 'General', icon: SlidersHorizontal, hint: 'Workspace preferences' },
-  { key: 'notifications', label: 'Notifications', icon: Bell, hint: 'Email & in-app alerts' },
-  { key: 'sessions', label: 'Sessions', icon: KeyRound, hint: 'Active devices' },
+  { key: 'companies',       label: 'Companies',       icon: Building2,        hint: 'Manage businesses'              },
+  { key: 'departments',     label: 'Departments',     icon: Building,         hint: 'Group employees by team'        },
+  { key: 'roles',           label: 'Roles',           icon: ShieldCheck,      hint: 'Permissions & access'           },
+  { key: 'booking-options', label: 'Booking Options', icon: BookOpen,         hint: 'Websites & platforms for forms' },
+  { key: 'general',         label: 'General',         icon: SlidersHorizontal,hint: 'Workspace preferences'          },
+  { key: 'notifications',   label: 'Notifications',   icon: Bell,             hint: 'Email & in-app alerts'          },
+  { key: 'sessions',        label: 'Sessions',        icon: KeyRound,         hint: 'Active devices'                 },
 ] as const
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]['key']
