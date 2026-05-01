@@ -4,8 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name:             'Officely',
     short_name:       'Officely',
-    description:      'Your office companion — tasks, attendance, leave & bookings',
-    start_url:        '/employee?pwa=1',
+    description:      'Office management — tasks, attendance, leave, bookings & admin',
+    start_url:        '/?pwa=1',
     scope:            '/',
     display:          'standalone',
     orientation:      'portrait-primary',
@@ -36,6 +36,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     shortcuts: [
+      // ── Employee shortcuts ───────────────────────────────────────────────────
       {
         name:        'My Tasks',
         short_name:  'Tasks',
@@ -53,6 +54,19 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name:  'Bookings',
         url:         '/employee/bookings',
         description: 'Log a new booking',
+      },
+      // ── Admin shortcuts ──────────────────────────────────────────────────────
+      {
+        name:        'Admin Dashboard',
+        short_name:  'Admin',
+        url:         '/cms',
+        description: 'Admin control panel',
+      },
+      {
+        name:        'Leave Management',
+        short_name:  'Leave',
+        url:         '/cms/leave',
+        description: 'Review and approve leave requests',
       },
     ],
   }
