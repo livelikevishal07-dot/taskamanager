@@ -85,3 +85,19 @@
     border: 2px solid hsl(var(--canvas));
   }
 }
+
+/* ── Print styles for payslip PDF ─────────────────────────────────────────── */
+@media print {
+  body * { visibility: hidden !important; }
+  #payslip-print,
+  #payslip-print * { visibility: visible !important; }
+  #payslip-print {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 24px;
+    max-width: 100%;
+    background: white;
+    color: black;
+  }
+}

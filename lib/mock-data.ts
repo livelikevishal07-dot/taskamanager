@@ -1,7 +1,7 @@
 // Mock data for the dashboard. Swap this for real API calls later —
 // keep the same shapes so components don't need to change.
 
-export const APP_NAME = 'Officely'
+export const APP_NAME = 'Workly'
 
 export const KPIS = [
   {

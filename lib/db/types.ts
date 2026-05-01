@@ -44,6 +44,7 @@ export interface Employee {
 
   role_id: string | null
   department_id: string | null
+  company_id: string | null
 
   working_hours_start: string | null // HH:MM[:SS]
   working_hours_end: string | null
@@ -52,6 +53,7 @@ export interface Employee {
   status: EmployeeStatus
   performance: number
   avatar_url: string | null
+  monthly_salary: number | null
 
   username: string | null
   /**
@@ -67,6 +69,44 @@ export interface Employee {
   // Joined relations (when present)
   role?: Pick<Role, 'id' | 'name' | 'color'> | null
   department?: Pick<Department, 'id' | 'name' | 'color'> | null
+  company?: Pick<Company, 'id' | 'name'> | null
+}
+
+// ── Payslip ───────────────────────────────────────────────────────────────────
+
+export type PayslipStatus = 'draft' | 'published'
+
+export interface Payslip {
+  id: string
+  employee_id: string
+  month: number
+  year: number
+
+  monthly_salary: number
+  company_name: string
+
+  total_working_days: number
+  present_days: number
+  paid_leave_days: number
+  absent_days: number
+
+  per_day_salary: number
+  base_pay: number
+  da: number
+  travel_allowance: number
+  gross_salary: number
+  deduction: number
+  net_salary: number
+
+  override_net_salary: number | null
+  admin_note: string | null
+
+  status: PayslipStatus
+  created_at: string
+  updated_at: string
+
+  // Joined
+  employee?: Pick<Employee, 'id' | 'full_name' | 'email' | 'department'> | null
 }
 
 export interface ApiError {

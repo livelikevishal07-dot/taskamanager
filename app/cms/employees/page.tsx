@@ -3,14 +3,16 @@ import { EmployeesSection } from '@/components/employees/employees-section'
 import { listEmployees } from '@/lib/db/employees'
 import { listDepartments } from '@/lib/db/departments'
 import { listRoles } from '@/lib/db/roles'
+import { listCompanies } from '@/lib/db/companies'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EmployeesPage() {
-  const [employeesResult, departments, roles] = await Promise.all([
+  const [employeesResult, departments, roles, companies] = await Promise.all([
     listEmployees({ limit: 200 }),
     listDepartments(),
     listRoles(),
+    listCompanies(),
   ])
 
   return (
@@ -25,6 +27,7 @@ export default async function EmployeesPage() {
           employees={employeesResult.rows}
           departments={departments}
           roles={roles}
+          companies={companies}
         />
       </main>
     </>

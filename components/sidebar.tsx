@@ -22,6 +22,7 @@ import {
   LogOut,
   Share,
   X,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
 import { useAdminMobileMenu } from '@/app/cms/mobile-menu-context'
 
-const APP_NAME = 'Officely'
+const APP_NAME = 'Workly'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ function InstallAppButton() {
                   <img src="/icon.svg" alt="" className="size-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-ink">Install Officely Admin</p>
+                  <p className="text-sm font-semibold text-ink">Install Workly Admin</p>
                   <p className="text-[11px] text-ink-soft">Add to your home screen</p>
                 </div>
               </div>
@@ -213,6 +214,7 @@ const SECONDARY: NavItem[] = [
   { href: '/cms/performance',  label: 'Performance',      icon: BarChart3 },
   { href: '/cms/attendance',   label: 'Attendance',       icon: CalendarDays },
   { href: '/cms/leave',        label: 'Leave Management', icon: CalendarOff },
+  { href: '/cms/payroll',      label: 'Payroll',          icon: Wallet },
   { href: '/cms/reports',      label: 'Reports',          icon: FileText },
   { href: '/cms/settings',     label: 'Settings',         icon: Settings },
   { href: '/employee/dashboard', label: 'Employee Portal', icon: UserCircle },
@@ -233,7 +235,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between gap-2 px-6 py-5">
         <div className="flex min-w-0 items-center gap-2">
           <div className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm">
-            <span className="text-sm font-bold">O</span>
+            <span className="text-sm font-bold">W</span>
           </div>
           <div className="min-w-0">
             <span className="block text-base font-semibold leading-tight tracking-tight">{APP_NAME}</span>

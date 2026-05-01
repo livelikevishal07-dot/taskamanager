@@ -87,12 +87,12 @@ export function PwaInstallBanner() {
             {/* App icon */}
             <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icon.svg" alt="Officely" className="size-8" />
+              <img src="/icon.svg" alt="Workly" className="size-8" />
             </div>
 
             {/* Text */}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-ink">Add Officely to Home Screen</p>
+              <p className="text-sm font-semibold text-ink">Add Workly to Home Screen</p>
               <p className="text-xs text-ink-soft">Works offline · Fast · No App Store needed</p>
             </div>
 
@@ -130,10 +130,10 @@ export function PwaInstallBanner() {
           <div className="flex items-start gap-3 px-4 py-3.5">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/icon.svg" alt="Officely" className="size-6" />
+              <img src="/icon.svg" alt="Workly" className="size-6" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-ink">Install Officely</p>
+              <p className="text-sm font-semibold text-ink">Install Workly</p>
               <p className="mt-0.5 text-xs text-ink-soft leading-relaxed">
                 Tap the{' '}
                 <span className="inline-flex items-center gap-0.5 font-semibold text-brand">

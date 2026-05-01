@@ -60,12 +60,19 @@ export const createEmployeeSchema = z.object({
   joining_date: dateString,
   role_id: z.string().uuid().nullable().optional(),
   department_id: z.string().uuid().nullable().optional(),
+  company_id: z.string().uuid().nullable().optional(),
   working_hours_start: timeString,
   working_hours_end: timeString,
   working_days: workingDaysSchema,
   status: employeeStatusSchema.default('active'),
   performance: z.number().int().min(0).max(100).default(0),
   avatar_url: z.string().url().nullable().optional(),
+  monthly_salary: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .optional()
+    .or(z.string().transform((v) => (v === '' ? null : parseFloat(v)))),
   username: usernameSchema
     .nullable()
     .optional()

@@ -46,9 +46,9 @@ export function EmployeeNavbar() {
         {/* Logo */}
         <Link href="/employee/dashboard" className="flex items-center gap-2 py-3.5 shrink-0">
           <div className="grid size-8 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm">
-            <span className="text-sm font-bold">O</span>
+            <span className="text-sm font-bold">W</span>
           </div>
-          <span className="hidden text-base font-semibold tracking-tight sm:block">Officely</span>
+          <span className="hidden text-base font-semibold tracking-tight sm:block">Workly</span>
         </Link>
 
         {/* Nav links */}

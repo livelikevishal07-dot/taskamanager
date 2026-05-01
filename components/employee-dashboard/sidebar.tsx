@@ -13,6 +13,7 @@ import {
   LogOut,
   Share,
   StickyNote,
+  Wallet,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -43,6 +44,7 @@ const PRIMARY: NavItem[] = [
   { href: '/employee/tasks',      label: 'My Tasks',  icon: CheckSquare     },
   { href: '/employee/attendance', label: 'Attendance',icon: CalendarDays    },
   { href: '/employee/leave',      label: 'Leave',     icon: CalendarOff     },
+  { href: '/employee/payslips',   label: 'Payslips',  icon: Wallet          },
   { href: '/employee/notes',      label: 'My Notes',  icon: StickyNote      },
 ]
 
@@ -148,7 +150,7 @@ function InstallAppButton() {
                   <img src="/icon.svg" alt="" className="size-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-ink">Install Officely</p>
+                  <p className="text-sm font-semibold text-ink">Install Workly</p>
                   <p className="text-[11px] text-ink-soft">Add to your home screen</p>
                 </div>
               </div>
@@ -246,10 +248,10 @@ export function EmployeeSidebar() {
       {/* ── Logo + mobile close button ── */}
       <div className="flex items-center gap-2.5 px-6 py-5">
         <div className="grid size-8 place-items-center rounded-full bg-brand text-brand-foreground shadow-sm">
-          <span className="text-sm font-bold">O</span>
+          <span className="text-sm font-bold">W</span>
         </div>
         <div className="min-w-0 flex-1">
-          <span className="block text-base font-semibold tracking-tight leading-tight">Officely</span>
+          <span className="block text-base font-semibold tracking-tight leading-tight">Workly</span>
           <span className="block text-[10px] font-medium text-ink-soft uppercase tracking-wider">Employee Portal</span>
         </div>
         {/* Close button — visible on mobile only */}

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name:             'Officely',
-    short_name:       'Officely',
+    name:             'Workly',
+    short_name:       'Workly',
     description:      'Office management — tasks, attendance, leave, bookings & admin',
     start_url:        '/?pwa=1',
     scope:            '/',

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Copy, Eye, EyeOff, RefreshCw } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import type { Department, Employee, EmployeeStatus, Role } from '@/lib/db/types'
+import type { Company, Department, Employee, EmployeeStatus, Role } from '@/lib/db/types'
 
 const DAYS = [
   { v: 1, label: 'M' },
@@ -25,11 +25,13 @@ export interface EmployeeFormValues {
   joining_date: string
   role_id: string
   department_id: string
+  company_id: string
   working_hours_start: string
   working_hours_end: string
   working_days: number[]
   status: EmployeeStatus
   performance: number
+  monthly_salary: string
   username: string
   password: string
 }
@@ -44,11 +46,13 @@ export function emptyEmployeeValues(): EmployeeFormValues {
     joining_date: '',
     role_id: '',
     department_id: '',
+    company_id: '',
     working_hours_start: '09:00',
     working_hours_end: '18:00',
     working_days: [1, 2, 3, 4, 5],
     status: 'active',
     performance: 0,
+    monthly_salary: '',
     username: '',
     password: '',
   }
@@ -64,11 +68,13 @@ export function valuesFromEmployee(e: Employee): EmployeeFormValues {
     joining_date: e.joining_date ?? '',
     role_id: e.role_id ?? '',
     department_id: e.department_id ?? '',
+    company_id: e.company_id ?? '',
     working_hours_start: (e.working_hours_start ?? '09:00').slice(0, 5),
     working_hours_end: (e.working_hours_end ?? '18:00').slice(0, 5),
     working_days: e.working_days ?? [1, 2, 3, 4, 5],
     status: e.status,
     performance: e.performance ?? 0,
+    monthly_salary: e.monthly_salary != null ? String(e.monthly_salary) : '',
     username: e.username ?? '',
     // Plain-text passwords are admin-visible by design — pre-fill so the
     // admin can see and copy the current password.
@@ -77,6 +83,7 @@ export function valuesFromEmployee(e: Employee): EmployeeFormValues {
 }
 
 export function valuesToPayload(v: EmployeeFormValues) {
+  const salary = parseFloat(v.monthly_salary)
   return {
     full_name: v.full_name.trim(),
     email: v.email.trim() || null,
@@ -86,11 +93,13 @@ export function valuesToPayload(v: EmployeeFormValues) {
     joining_date: v.joining_date || null,
     role_id: v.role_id || null,
     department_id: v.department_id || null,
+    company_id: v.company_id || null,
     working_hours_start: v.working_hours_start || null,
     working_hours_end: v.working_hours_end || null,
     working_days: v.working_days,
     status: v.status,
     performance: Number.isFinite(v.performance) ? v.performance : 0,
+    monthly_salary: Number.isFinite(salary) && salary > 0 ? salary : null,
     username: v.username.trim() ? v.username.trim().toLowerCase() : null,
     ...(v.password.trim() ? { password: v.password } : {}),
   }
@@ -101,6 +110,7 @@ interface Props {
   onChange: (next: EmployeeFormValues) => void
   departments: Department[]
   roles: Role[]
+  companies?: Company[]
   fieldErrors?: Record<string, string[]>
 }
 
@@ -109,6 +119,7 @@ export function EmployeeForm({
   onChange,
   departments,
   roles,
+  companies = [],
   fieldErrors,
 }: Props) {
   function set<K extends keyof EmployeeFormValues>(
@@ -224,6 +235,32 @@ export function EmployeeForm({
             <option value="inactive">Inactive</option>
             <option value="terminated">Terminated</option>
           </Select>
+        </Field>
+      </Row>
+
+      <Row>
+        <Field label="Company" error={err(fieldErrors, 'company_id')}>
+          <Select
+            value={values.company_id}
+            onChange={(e) => set('company_id', e.target.value)}
+          >
+            <option value="">— None —</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Monthly Salary (₹)" error={err(fieldErrors, 'monthly_salary')}>
+          <Input
+            type="number"
+            min="0"
+            step="500"
+            value={values.monthly_salary}
+            onChange={(e) => set('monthly_salary', e.target.value)}
+            placeholder="e.g. 20000"
+          />
         </Field>
       </Row>
 

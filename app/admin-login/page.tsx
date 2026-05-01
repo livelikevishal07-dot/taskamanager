@@ -29,7 +29,7 @@ export default function AdminLoginPage({
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Admin Portal</h1>
           <p className="mt-1.5 text-sm text-slate-400">
-            Restricted access · Officely
+            Restricted access · Workly
           </p>
         </div>
 

@@ -7,12 +7,13 @@ import { EmployeeToolbar, type EmployeeFilters } from './employee-toolbar'
 import { EmployeesTable } from './employees-table'
 import { EmployeesGrid } from './employees-grid'
 import { EmployeeDrawer } from './employee-drawer'
-import type { Department, Employee, Role } from '@/lib/db/types'
+import type { Company, Department, Employee, Role } from '@/lib/db/types'
 
 interface Props {
   employees: Employee[]
   departments: Department[]
   roles: Role[]
+  companies?: Company[]
 }
 
 function deriveStats(employees: Employee[]) {
@@ -28,6 +29,7 @@ export function EmployeesSection({
   employees: initialEmployees,
   departments,
   roles,
+  companies = [],
 }: Props) {
   const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees)
   const [view, setView] = React.useState<'list' | 'grid'>('list')
@@ -118,6 +120,7 @@ export function EmployeesSection({
         employee={editing}
         departments={departments}
         roles={roles}
+        companies={companies}
         onSaved={handleSaved}
         onDeleted={handleDeleted}
       />

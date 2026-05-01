@@ -20,12 +20,12 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title:         'Officely',
+  title:         'Workly',
   description:   'Your office companion — tasks, attendance, leave & bookings',
-  applicationName: 'Officely',
+  applicationName: 'Workly',
   appleWebApp: {
     capable:           true,
-    title:             'Officely',
+    title:             'Workly',
     statusBarStyle:    'black-translucent',
   },
   formatDetection: {

@@ -11,7 +11,7 @@ import {
   valuesToPayload,
   type EmployeeFormValues,
 } from './employee-form'
-import type { Department, Employee, Role } from '@/lib/db/types'
+import type { Company, Department, Employee, Role } from '@/lib/db/types'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -21,6 +21,7 @@ interface Props {
   employee?: Employee | null
   departments: Department[]
   roles: Role[]
+  companies?: Company[]
   onSaved?: (employee: Employee) => void
   onDeleted?: (id: string) => void
 }
@@ -32,6 +33,7 @@ export function EmployeeDrawer({
   employee,
   departments,
   roles,
+  companies = [],
   onSaved,
   onDeleted,
 }: Props) {
@@ -161,6 +163,7 @@ export function EmployeeDrawer({
         onChange={setValues}
         departments={departments}
         roles={roles}
+        companies={companies}
         fieldErrors={fieldErrors}
       />
     </Drawer>

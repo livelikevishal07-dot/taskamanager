@@ -28,15 +28,16 @@ function withPassword<T extends { password?: string | null }>(
 // these endpoints to non-admin clients.
 const PUBLIC_COLUMNS = [
   'id', 'full_name', 'email', 'phone', 'address', 'birthday', 'joining_date',
-  'role_id', 'department_id',
+  'role_id', 'department_id', 'company_id',
   'working_hours_start', 'working_hours_end', 'working_days',
   'status', 'performance', 'avatar_url',
+  'monthly_salary',
   'username', 'password',
   'created_at', 'updated_at',
 ].join(', ')
 
 const SELECT =
-  `${PUBLIC_COLUMNS}, role:roles ( id, name, color ), department:departments ( id, name, color )`
+  `${PUBLIC_COLUMNS}, role:roles ( id, name, color ), department:departments ( id, name, color ), company:companies ( id, name )`
 
 // Used only by the login flow on the server. Same as SELECT now since
 // password is part of the public columns, but kept named for clarity.

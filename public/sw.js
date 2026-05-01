@@ -1,8 +1,8 @@
-// Officely Service Worker
+// Workly Service Worker
 // Handles: Web Push notifications + PWA offline caching
 // Placed in /public so it's served at root scope (/)
 
-const CACHE_NAME   = 'officely-shell-v1'
+const CACHE_NAME   = 'workly-shell-v1'
 const OFFLINE_URL  = '/offline'
 
 // Assets to pre-cache on install (app shell)
@@ -119,11 +119,11 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json()
   } catch {
-    payload = { title: 'Officely', body: event.data.text() }
+    payload = { title: 'Workly', body: event.data.text() }
   }
 
   const {
-    title = 'Officely',
+    title = 'Workly',
     body  = '',
     icon  = '/icon.svg',
     url   = '/employee',
