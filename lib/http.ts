@@ -1,12 +1,26 @@
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
+// Disables browser, CDN, and intermediate caching of API responses so clients
+// always see live data. Without this, browsers apply heuristic caching to GET
+// responses that lack a Cache-Control header.
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+}
+
+function withNoCache(init?: ResponseInit): ResponseInit {
+  return {
+    ...init,
+    headers: { ...NO_CACHE_HEADERS, ...(init?.headers as Record<string, string> | undefined) },
+  }
+}
+
 export function ok<T>(data: T, init?: ResponseInit) {
-  return NextResponse.json(data, init)
+  return NextResponse.json(data, withNoCache(init))
 }
 
 export function fail(status: number, error: string, details?: unknown) {
-  return NextResponse.json({ error, details }, { status })
+  return NextResponse.json({ error, details }, withNoCache({ status }))
 }
 
 export function fromError(err: unknown) {

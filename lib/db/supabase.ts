@@ -23,10 +23,12 @@ export function db(): SupabaseClient {
   }
   cached = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
-    // Do NOT override fetch cache here — allow Next.js to deduplicate identical
-    // GET requests within a single server render pass. Routes that must be
-    // completely fresh (all API routes) already use `export const dynamic =
-    // 'force-dynamic'`, which bypasses response caching at the route level.
+    // Bypass Next.js fetch cache so DB reads always reflect current state.
+    // Without this, Next.js 14 caches every Supabase GET indefinitely and
+    // returns stale data even on routes marked `dynamic = 'force-dynamic'`.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   })
   return cached
 }

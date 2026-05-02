@@ -10,7 +10,7 @@ import { useEmployee } from '@/app/employee/context'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type LeaveType    = 'casual' | 'sick' | 'annual' | 'maternity' | 'paternity' | 'unpaid' | 'other'
+type LeaveType    = 'casual' | 'sick' | 'annual' | 'maternity' | 'paternity' | 'unpaid' | 'other' | 'emergency'
 type LeaveStatus  = 'pending' | 'approved' | 'rejected' | 'cancelled'
 type AccrualType  = 'fixed' | 'monthly'
 type HolidayType  = 'public' | 'company' | 'optional'
@@ -46,13 +46,14 @@ interface Holiday {
 // ── Style maps ────────────────────────────────────────────────────────────────
 
 const BALANCE_STYLE: Record<LeaveType, { bar: string; chip: string; dot: string }> = {
-  casual:    { bar: 'bg-sky',      chip: 'bg-sky/10 text-sky',          dot: 'bg-sky'      },
-  sick:      { bar: 'bg-coral',    chip: 'bg-coral/10 text-coral',      dot: 'bg-coral'    },
-  annual:    { bar: 'bg-emerald',  chip: 'bg-emerald/10 text-emerald',  dot: 'bg-emerald'  },
-  unpaid:    { bar: 'bg-amber',    chip: 'bg-amber/10 text-amber',      dot: 'bg-amber'    },
-  maternity: { bar: 'bg-violet',   chip: 'bg-violet/10 text-violet',    dot: 'bg-violet'   },
-  paternity: { bar: 'bg-indigo',   chip: 'bg-indigo/10 text-indigo',    dot: 'bg-indigo'   },
-  other:     { bar: 'bg-brand',    chip: 'bg-brand/10 text-brand',      dot: 'bg-brand'    },
+  casual:    { bar: 'bg-sky',      chip: 'bg-sky/10 text-sky',                 dot: 'bg-sky'      },
+  sick:      { bar: 'bg-coral',    chip: 'bg-coral/10 text-coral',             dot: 'bg-coral'    },
+  annual:    { bar: 'bg-emerald',  chip: 'bg-emerald/10 text-emerald',         dot: 'bg-emerald'  },
+  unpaid:    { bar: 'bg-amber',    chip: 'bg-amber/10 text-amber',             dot: 'bg-amber'    },
+  maternity: { bar: 'bg-violet',   chip: 'bg-violet/10 text-violet',           dot: 'bg-violet'   },
+  paternity: { bar: 'bg-indigo',   chip: 'bg-indigo/10 text-indigo',           dot: 'bg-indigo'   },
+  other:     { bar: 'bg-brand',    chip: 'bg-brand/10 text-brand',             dot: 'bg-brand'    },
+  emergency: { bar: 'bg-red-500',  chip: 'bg-red-100 text-red-600',            dot: 'bg-red-500'  },
 }
 
 const STATUS_META: Record<LeaveStatus, { label: string; chip: string; icon: React.ElementType }> = {
@@ -71,6 +72,7 @@ const HOLIDAY_CHIP: Record<HolidayType, string> = {
 const LEAVE_LABELS: Record<LeaveType, string> = {
   casual: 'Casual', sick: 'Sick', annual: 'Annual',
   maternity: 'Maternity', paternity: 'Paternity', unpaid: 'Unpaid', other: 'Other',
+  emergency: 'Emergency',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -227,8 +229,11 @@ export function LeaveOverview() {
       const bArr = Array.isArray(bData) ? bData as LeaveBalance[] : []
       const activeTypes = new Set(bArr.map((b) => b.leave_type))
       setBalances(bArr)
-      // Filter requests to only show active policy types — ignore deleted types (casual, annual etc.)
-      setRequests((Array.isArray(rData) ? rData as LeaveRequest[] : []).filter((r) => activeTypes.has(r.type)))
+      // Show requests for active policy types AND emergency leave (which is always allowed)
+      setRequests(
+        (Array.isArray(rData) ? rData as LeaveRequest[] : [])
+          .filter((r) => r.type === 'emergency' || activeTypes.has(r.type)),
+      )
       // Only keep upcoming holidays (from today inclusive, next 4 max)
       const todayStr = today()
       const upcoming = (Array.isArray(hData) ? hData as Holiday[] : [])

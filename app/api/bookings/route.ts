@@ -1,12 +1,10 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { listBookings, createBooking } from '@/lib/db/bookings'
+import { getBookingOptions } from '@/lib/db/booking-options'
 import { fail, fromError, ok } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-
-const WEBSITES  = ['BalloonDekor', '7eventzz', 'Giftlaya'] as const
-const PLATFORMS = ['WhatsApp', 'Website', 'Others'] as const
 
 const createSchema = z.object({
   employee_id:      z.string().uuid(),
@@ -17,9 +15,9 @@ const createSchema = z.object({
   event_date:       z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   total_amount:     z.number().min(0),
   advance_paid:     z.number().min(0),
-  website:          z.enum(WEBSITES),
+  website:          z.string().trim().min(1).max(100),
   occasion:         z.string().trim().min(1).max(100),
-  booking_platform: z.enum(PLATFORMS),
+  booking_platform: z.string().trim().min(1).max(100),
 })
 
 export async function GET(req: NextRequest) {
@@ -43,6 +41,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null)
     if (!body) return fail(400, 'Invalid JSON body')
     const parsed = createSchema.parse(body)
+
+    const options  = await getBookingOptions()
+    const websites = new Set(options.filter((o) => o.type === 'website').map((o) => o.label))
+    const platforms = new Set(options.filter((o) => o.type === 'platform').map((o) => o.label))
+    if (!websites.has(parsed.website))           return fail(400, `Unknown website "${parsed.website}"`)
+    if (!platforms.has(parsed.booking_platform)) return fail(400, `Unknown platform "${parsed.booking_platform}"`)
+
     return ok(await createBooking(parsed), { status: 201 })
   } catch (err) {
     return fromError(err)
