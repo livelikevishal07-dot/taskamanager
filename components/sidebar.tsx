@@ -205,6 +205,7 @@ const PRIMARY: NavItem[] = [
     href: '/cms/bookings', label: 'Bookings', icon: BookOpen,
     children: [
       { href: '/cms/bookings/analysis', label: 'Analysis',    icon: PieChart },
+      { href: '/cms/bookings/calendar', label: 'Calendar',    icon: CalendarDays },
       { href: '/cms/bookings/list',     label: 'All Entries', icon: ListOrdered },
     ],
   },

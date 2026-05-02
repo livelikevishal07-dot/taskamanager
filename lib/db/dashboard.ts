@@ -251,7 +251,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       .limit(5),
 
     supa.from('bookings')
-      .select('id, customer_name, total_amount, created_at, employee:employees(full_name)')
+      .select('id, customer_name, city, occasion, created_at, employee:employees(full_name)')
       .order('created_at', { ascending: false })
       .limit(5),
 
@@ -431,10 +431,10 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       id: `booking-${b.id}`,
       kind: 'booking',
       title: `${b.employee?.full_name ?? 'Someone'} added booking for ${b.customer_name}`,
-      subtitle: `₹${new Intl.NumberFormat('en-IN').format(num(b.total_amount))}`,
+      subtitle: [b.city, b.occasion].filter(Boolean).join(' · ') || null,
       actor: b.employee?.full_name ?? null,
       when: b.created_at,
-      href: `/cms/bookings/list`,
+      href: `/cms/bookings/calendar`,
     })
   }
   activity.sort((a, b) => (a.when < b.when ? 1 : -1))

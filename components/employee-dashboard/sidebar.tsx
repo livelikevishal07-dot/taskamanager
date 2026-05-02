@@ -230,7 +230,11 @@ export function EmployeeSidebar() {
     employee.department && BOOKING_DEPARTMENTS.includes(employee.department),
   )
   const primaryNav = showBookings
-    ? [...PRIMARY, { href: '/employee/bookings', label: 'Bookings', icon: BookOpen }]
+    ? [
+        ...PRIMARY,
+        { href: '/employee/bookings',          label: 'Bookings',         icon: BookOpen     },
+        { href: '/employee/bookings/calendar', label: 'Booking Calendar', icon: CalendarDays },
+      ]
     : PRIMARY
 
   async function handleSignOut() {

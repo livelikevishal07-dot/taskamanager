@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip,
 } from 'recharts'
 import {
-  Users, ListTodo, CalendarOff, IndianRupee,
+  Users, ListTodo, CalendarOff,
   TrendingUp, RefreshCw, ArrowRight, AlertCircle, Clock,
   CheckCircle2, CalendarDays, Megaphone, Award,
   ChevronRight, BookOpen, ListChecks,
@@ -32,9 +32,6 @@ const COLORS = {
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)
-}
 function dayLabel(iso: string) {
   return new Date(iso + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
@@ -494,14 +491,16 @@ function BookingMiniCard({ stats }: { stats: DashboardSnapshot['bookingStats'] }
         <p className="mt-1 text-xl font-bold tabular-nums">{stats.todayCount}</p>
         <p className="text-[11px] text-ink-soft">today</p>
       </div>
-      <div className="col-span-2 rounded-xl bg-gradient-to-br from-brand to-violet p-3 text-white">
-        <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Month Revenue</p>
-        <p className="mt-1 text-2xl font-bold tabular-nums">₹{fmt(stats.monthRevenue)}</p>
-        <div className="mt-1 flex items-center gap-3 text-[10px] opacity-90">
-          <span>Advance: ₹{fmt(stats.monthAdvance)}</span>
-          <span>Pending: ₹{fmt(stats.monthPending)}</span>
-        </div>
-      </div>
+      <Link
+        href="/cms/bookings/calendar"
+        className="col-span-2 flex items-center justify-between gap-2 rounded-xl bg-gradient-to-br from-brand to-violet p-3 text-white transition-opacity hover:opacity-90"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <CalendarCheck className="size-4" />
+          View today&apos;s bookings
+        </span>
+        <ArrowRight className="size-4" />
+      </Link>
     </div>
   )
 }
@@ -518,24 +517,19 @@ function TodayEventsCard({ events }: { events: DashboardSnapshot['todayEvents'] 
     )
   }
 
-  const totalRevenue = events.reduce((s, e) => s + e.total_amount, 0)
-  const totalAdvance = events.reduce((s, e) => s + e.advance_paid, 0)
+  const cities = new Set(events.map((e) => e.city)).size
 
   return (
     <div className="space-y-3">
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
           <p className="text-lg font-bold text-brand tabular-nums">{events.length}</p>
-          <p className="text-[10px] text-ink-soft">Events</p>
+          <p className="text-[10px] text-ink-soft">Events today</p>
         </div>
         <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
-          <p className="text-lg font-bold tabular-nums">{'₹'}{fmt(totalRevenue)}</p>
-          <p className="text-[10px] text-ink-soft">Revenue</p>
-        </div>
-        <div className="rounded-lg border border-border bg-surface-2/40 px-2.5 py-2 text-center">
-          <p className="text-lg font-bold text-emerald tabular-nums">{'₹'}{fmt(totalAdvance)}</p>
-          <p className="text-[10px] text-ink-soft">Advance</p>
+          <p className="text-lg font-bold text-emerald tabular-nums">{cities}</p>
+          <p className="text-[10px] text-ink-soft">{cities === 1 ? 'City' : 'Cities'}</p>
         </div>
       </div>
 
@@ -564,8 +558,6 @@ function TodayEventsCard({ events }: { events: DashboardSnapshot['todayEvents'] 
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-[11px]">
                   <span className="font-medium text-ink">by {ev.employee_name}</span>
-                  <span className="text-ink-soft">{'·'}</span>
-                  <span className="font-semibold text-brand tabular-nums">{'₹'}{fmt(ev.total_amount)}</span>
                 </div>
               </div>
               <a
@@ -654,12 +646,12 @@ export function AdminDashboard({ initial }: Props) {
           href="/cms/leave"
         />
         <KpiCard
-          label="Month Revenue"
-          value={`₹${fmt(data.bookingStats.monthRevenue)}`}
-          hint={`${data.bookingStats.monthCount} bookings · ₹${fmt(data.bookingStats.monthPending)} pending`}
+          label="Today's Bookings"
+          value={String(data.bookingStats.todayCount)}
+          hint={`${data.bookingStats.monthCount} this month · view calendar`}
           gradient="bg-gradient-to-br from-emerald to-[#5BD9A4]"
-          icon={IndianRupee}
-          href="/cms/bookings/analysis"
+          icon={CalendarDays}
+          href="/cms/bookings/calendar"
         />
       </div>
 
@@ -702,8 +694,8 @@ export function AdminDashboard({ initial }: Props) {
         }
         subtitle="Bookings with events scheduled for today"
         action={
-          <Link href="/cms/bookings/list" className="text-xs text-brand hover:underline flex items-center gap-1">
-            All Bookings <ArrowRight className="size-3" />
+          <Link href="/cms/bookings/calendar" className="text-xs text-brand hover:underline flex items-center gap-1">
+            Open Calendar <ArrowRight className="size-3" />
           </Link>
         }
       >
