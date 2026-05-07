@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import {
   BookOpen, IndianRupee, Wallet, Clock,
-  ChevronLeft, ChevronRight,
+  TrendingUp, CalendarRange,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -75,10 +75,6 @@ function fmt(n: number) {
 function toISO(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
-function daysInMonth(y: number, m: number) {
-  return new Date(y, m + 1, 0).getDate()
-}
-
 function ChartTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
@@ -115,26 +111,65 @@ function StatCard({
   )
 }
 
-// ── Daily Trend ───────────────────────────────────────────────────────────────
+// ── Trend Chart (daily or monthly buckets) ───────────────────────────────────
 
-function DailyChart({ bookings, year, month }: { bookings: Booking[]; year: number; month: number }) {
-  const days = daysInMonth(year, month)
-  const data = Array.from({ length: days }, (_, i) => {
-    const iso = toISO(year, month, i + 1)
-    const day = bookings.filter(b => b.order_date === iso)
-    return {
-      day: i + 1,
-      revenue: day.reduce((s, b) => s + b.total_amount, 0),
-      advance: day.reduce((s, b) => s + b.advance_paid, 0),
+function parseISO(s: string) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function diffDays(from: string, to: string) {
+  return Math.round((parseISO(to).getTime() - parseISO(from).getTime()) / 86400000) + 1
+}
+
+function TrendChart({ bookings, from, to }: { bookings: Booking[]; from: string; to: string }) {
+  const days = diffDays(from, to)
+  const useMonthly = days > 62
+
+  const data = React.useMemo(() => {
+    const start = parseISO(from)
+    const end = parseISO(to)
+    if (useMonthly) {
+      const map = new Map<string, { label: string; revenue: number; advance: number }>()
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1)
+      while (cursor <= end) {
+        const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+        map.set(key, { label: `${MONTHS[cursor.getMonth()].slice(0, 3)} ${String(cursor.getFullYear()).slice(2)}`, revenue: 0, advance: 0 })
+        cursor.setMonth(cursor.getMonth() + 1)
+      }
+      bookings.forEach(b => {
+        const key = b.order_date.slice(0, 7)
+        const cur = map.get(key)
+        if (cur) {
+          cur.revenue += b.total_amount
+          cur.advance += b.advance_paid
+        }
+      })
+      return [...map.values()]
     }
-  })
+    const out: { label: string; revenue: number; advance: number }[] = []
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const iso = toISO(d.getFullYear(), d.getMonth(), d.getDate())
+      const day = bookings.filter(b => b.order_date === iso)
+      out.push({
+        label: days <= 31 ? String(d.getDate()) : `${d.getDate()}/${d.getMonth() + 1}`,
+        revenue: day.reduce((s, b) => s + b.total_amount, 0),
+        advance: day.reduce((s, b) => s + b.advance_paid, 0),
+      })
+    }
+    return out
+  }, [bookings, from, to, days, useMonthly])
+
+  const interval = data.length > 30 ? Math.ceil(data.length / 12) : data.length > 14 ? 2 : 0
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="text-base font-semibold">Daily Revenue Trend</h3>
-          <p className="text-xs text-ink-soft">{MONTHS[month]} {year} — by booking date</p>
+          <h3 className="text-base font-semibold">{useMonthly ? 'Monthly Revenue Trend' : 'Daily Revenue Trend'}</h3>
+          <p className="text-xs text-ink-soft">{from} → {to} — by booking date</p>
         </div>
         <div className="flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5">
@@ -161,9 +196,9 @@ function DailyChart({ bookings, year, month }: { bookings: Booking[]; year: numb
               </linearGradient>
             </defs>
             <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="day" axisLine={false} tickLine={false}
+            <XAxis dataKey="label" axisLine={false} tickLine={false}
               tick={{ fontSize: 11, fill: 'hsl(var(--ink-soft))' }}
-              interval={days > 20 ? 4 : 1}
+              interval={interval}
             />
             <YAxis axisLine={false} tickLine={false}
               tick={{ fontSize: 11, fill: 'hsl(var(--ink-soft))' }}
@@ -393,10 +428,53 @@ function EmployeeLeaderboard({ bookings }: { bookings: Booking[] }) {
 
 // ── Main Analysis Component ───────────────────────────────────────────────────
 
+type RangeMode = 'today' | 'week' | 'month' | '6months' | 'custom'
+
+const RANGE_LABELS: Record<RangeMode, string> = {
+  today:    'Today',
+  week:     'Last 7 days',
+  month:    'Last 30 days',
+  '6months': 'Last 6 months',
+  custom:   'Custom',
+}
+
+function todayISO() {
+  const d = new Date()
+  return toISO(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function computeRange(mode: RangeMode, customFrom: string, customTo: string): { from: string; to: string } {
+  const now = new Date()
+  const to = todayISO()
+  if (mode === 'today') return { from: to, to }
+  if (mode === 'week') {
+    const s = new Date(now); s.setDate(now.getDate() - 6)
+    return { from: toISO(s.getFullYear(), s.getMonth(), s.getDate()), to }
+  }
+  if (mode === 'month') {
+    const s = new Date(now); s.setDate(now.getDate() - 29)
+    return { from: toISO(s.getFullYear(), s.getMonth(), s.getDate()), to }
+  }
+  if (mode === '6months') {
+    const s = new Date(now); s.setMonth(now.getMonth() - 6); s.setDate(s.getDate() + 1)
+    return { from: toISO(s.getFullYear(), s.getMonth(), s.getDate()), to }
+  }
+  if (customFrom && customTo) {
+    return customFrom <= customTo ? { from: customFrom, to: customTo } : { from: customTo, to: customFrom }
+  }
+  return { from: to, to }
+}
+
 export function AdminBookingsAnalysis({ employees }: Props) {
-  const today = new Date()
-  const [year,  setYear]  = React.useState(today.getFullYear())
-  const [month, setMonth] = React.useState(today.getMonth())
+  const [rangeMode, setRangeMode] = React.useState<RangeMode>('month')
+  const [customFrom, setCustomFrom] = React.useState(todayISO())
+  const [customTo, setCustomTo]   = React.useState(todayISO())
+
+  const { from, to } = React.useMemo(
+    () => computeRange(rangeMode, customFrom, customTo),
+    [rangeMode, customFrom, customTo],
+  )
+  const totalDays = Math.max(1, diffDays(from, to))
 
   const [empFilter,  setEmpFilter]  = React.useState('')
   const [siteFilter, setSiteFilter] = React.useState('')
@@ -405,21 +483,10 @@ export function AdminBookingsAnalysis({ employees }: Props) {
   const [bookings, setBookings] = React.useState<Booking[]>([])
   const [loading,  setLoading]  = React.useState(true)
 
-  function prevMonth() {
-    if (month === 0) { setYear(y => y - 1); setMonth(11) }
-    else setMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (month === 11) { setYear(y => y + 1); setMonth(0) }
-    else setMonth(m => m + 1)
-  }
-
   const load = React.useCallback(async () => {
     setLoading(true)
     try {
-      const from = toISO(year, month, 1)
-      const to   = toISO(year, month, daysInMonth(year, month))
-      const sp   = new URLSearchParams({ from, to, with_employee: '1' })
+      const sp = new URLSearchParams({ from, to, with_employee: '1' })
       if (empFilter) sp.set('employee_id', empFilter)
       const res = await fetch(`/api/bookings?${sp}`)
       const data = await res.json()
@@ -436,7 +503,7 @@ export function AdminBookingsAnalysis({ employees }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [year, month, empFilter])
+  }, [from, to, empFilter])
 
   React.useEffect(() => { load() }, [load])
 
@@ -449,24 +516,35 @@ export function AdminBookingsAnalysis({ employees }: Props) {
   const totalRevenue  = filtered.reduce((s, b) => s + b.total_amount, 0)
   const totalAdvance  = filtered.reduce((s, b) => s + b.advance_paid, 0)
   const totalPending  = totalRevenue - totalAdvance
+  const avgOrderValue = totalBookings > 0 ? totalRevenue / totalBookings : 0
+  const avgPerDay     = totalBookings / totalDays
 
   return (
     <div className="space-y-6">
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-surface px-1.5 py-1.5 shadow-card">
-          <button onClick={prevMonth}
-            className="grid size-7 place-items-center rounded-lg text-ink-muted hover:bg-surface-2 hover:text-ink transition-colors">
-            <ChevronLeft className="size-4" />
-          </button>
-          <span className="min-w-[136px] text-center text-sm font-semibold">
-            {MONTHS[month]} {year}
-          </span>
-          <button onClick={nextMonth}
-            className="grid size-7 place-items-center rounded-lg text-ink-muted hover:bg-surface-2 hover:text-ink transition-colors">
-            <ChevronRight className="size-4" />
-          </button>
+        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-1.5 shadow-card">
+          <CalendarRange className="size-4 text-ink-muted" />
+          <select value={rangeMode}
+            onChange={e => setRangeMode(e.target.value as RangeMode)}
+            className="bg-transparent text-sm font-semibold text-ink focus:outline-none cursor-pointer">
+            {(Object.keys(RANGE_LABELS) as RangeMode[]).map(k => (
+              <option key={k} value={k}>{RANGE_LABELS[k]}</option>
+            ))}
+          </select>
         </div>
+
+        {rangeMode === 'custom' && (
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-1.5 shadow-card">
+            <input type="date" value={customFrom}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="bg-transparent text-sm focus:outline-none cursor-pointer" />
+            <span className="text-ink-soft text-xs">→</span>
+            <input type="date" value={customTo}
+              onChange={e => setCustomTo(e.target.value)}
+              className="bg-transparent text-sm focus:outline-none cursor-pointer" />
+          </div>
+        )}
 
         <select value={empFilter} onChange={e => setEmpFilter(e.target.value)}
           className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-ink-muted shadow-card focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer">
@@ -498,16 +576,26 @@ export function AdminBookingsAnalysis({ employees }: Props) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
           label="Total Bookings" value={String(totalBookings)}
-          sub={`${MONTHS[month]} ${year}`}
+          sub={RANGE_LABELS[rangeMode]}
           bgCls="bg-brand/10" textCls="text-brand" icon={BookOpen}
         />
         <StatCard
           label="Total Revenue" value={`₹${fmt(totalRevenue)}`}
           sub="all orders combined"
           bgCls="bg-violet/10" textCls="text-violet" icon={IndianRupee}
+        />
+        <StatCard
+          label="Avg Order Value" value={`₹${fmt(avgOrderValue)}`}
+          sub={`across ${fmt(totalBookings)} order${totalBookings === 1 ? '' : 's'}`}
+          bgCls="bg-amber/10" textCls="text-amber" icon={TrendingUp}
+        />
+        <StatCard
+          label="Avg Bookings / Day" value={avgPerDay.toFixed(avgPerDay >= 10 ? 0 : 1)}
+          sub={`over ${totalDays} day${totalDays === 1 ? '' : 's'}`}
+          bgCls="bg-sky/10" textCls="text-sky" icon={CalendarRange}
         />
         <StatCard
           label="Advance Collected" value={`₹${fmt(totalAdvance)}`}
@@ -521,7 +609,7 @@ export function AdminBookingsAnalysis({ employees }: Props) {
         />
       </div>
 
-      <DailyChart bookings={filtered} year={year} month={month} />
+      <TrendChart bookings={filtered} from={from} to={to} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <WebsiteChart  bookings={filtered} />
