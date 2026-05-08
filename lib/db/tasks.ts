@@ -56,6 +56,53 @@ const ASSIGNMENT_SELECT =
 const TASK_DETAIL_SELECT =
   '*, company:companies ( id, name, color ), assignments:task_assignments ( id, employee_id, status, hours_logged, employee:employees ( id, full_name ) ), items:task_items ( id, title, completed, sort_order )'
 
+// ── Notification helpers ──────────────────────────────────────────────────
+// Build a single, consistent push body that surfaces priority and deadline.
+// Kept pure so create + update paths produce identical-looking notifications.
+
+const PRIORITY_TAG: Record<TaskRow['priority'], string> = {
+  urgent: '🔴 URGENT',
+  high:   '🟠 High',
+  medium: '🟡 Medium',
+  low:    '🟢 Low',
+}
+
+function formatDeadlineHint(deadlineIso: string | null | undefined): string | null {
+  if (!deadlineIso) return null
+  const due = new Date(deadlineIso)
+  if (Number.isNaN(due.getTime())) return null
+  const now = new Date()
+  const sameDay =
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
+  const tomorrow = new Date(now)
+  tomorrow.setDate(now.getDate() + 1)
+  const isTomorrow =
+    due.getFullYear() === tomorrow.getFullYear() &&
+    due.getMonth() === tomorrow.getMonth() &&
+    due.getDate() === tomorrow.getDate()
+  const time = due.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  if (sameDay)   return `Due today · ${time}`
+  if (isTomorrow) return `Due tomorrow · ${time}`
+  const date = due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return `Due ${date} · ${time}`
+}
+
+function buildAssignmentPush(task: {
+  title: string
+  priority: TaskRow['priority']
+  deadline: string | null
+}): { title: string; body: string; url: string } {
+  const lines = [PRIORITY_TAG[task.priority], formatDeadlineHint(task.deadline)].filter(Boolean) as string[]
+  const body = lines.length > 0 ? `${task.title}\n${lines.join(' · ')}` : task.title
+  return {
+    title: '📋 New task assigned',
+    body,
+    url: '/employee/tasks',
+  }
+}
+
 // ── List / Get ─────────────────────────────────────────────────────────────
 
 export interface ListTasksParams {
@@ -146,12 +193,15 @@ export async function createTask(input: {
 
     // Fire push notifications to every assigned employee — best-effort,
     // never throws so a push failure never breaks task creation.
-    const title = (data as any).title as string
-    sendPushToEmployees(employee_ids, {
-      title: '📋 New Task Assigned',
-      body:  title,
-      url:   '/employee/tasks',
-    }).catch(() => {})
+    const created2 = data as { title: string; priority: TaskRow['priority']; deadline: string | null }
+    sendPushToEmployees(
+      employee_ids,
+      buildAssignmentPush({
+        title: created2.title,
+        priority: created2.priority,
+        deadline: created2.deadline,
+      }),
+    ).catch(() => {})
 
     return full as unknown as TaskWithDetails
   }
@@ -271,6 +321,18 @@ export async function updateTask(
             completed_at: completedAt,
           }))
         )
+
+      // Notify only the newly-added assignees — existing assignees should
+      // not get spammed every time the admin edits the task.
+      const { data: notifyTask } = await db()
+        .from('tasks')
+        .select('title, priority, deadline')
+        .eq('id', id)
+        .single()
+      if (notifyTask) {
+        const t = notifyTask as { title: string; priority: TaskRow['priority']; deadline: string | null }
+        sendPushToEmployees(toAdd, buildAssignmentPush(t)).catch(() => {})
+      }
     }
 
     // Remove dropped ones
